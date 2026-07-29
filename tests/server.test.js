@@ -108,7 +108,7 @@ describe('sets cache control headers', () => {
         const reqImage = { path: '/images/pic.jpg', url: '/images/pic.jpg' };
         const resImage = { setHeader: jest.fn() };
         cacheControlMiddleware(reqImage, resImage, () => {});
-        expect(resImage.setHeader).toHaveBeenCalledWith('Cache-Control', expect.stringMatching(/public, max-age=\d+, must-revalidate/));
+        expect(resImage.setHeader).toHaveBeenCalledWith('Cache-Control', expect.stringMatching(/public, max-age=\d+, immutable/));
     });
 
     test('cache control for static assets', () => {
@@ -117,7 +117,25 @@ describe('sets cache control headers', () => {
         const reqAsset = { path: '/js/posts.js', url: '/js/posts.js' };
         const resAsset = { setHeader: jest.fn() };
         cacheControlMiddleware(reqAsset, resAsset, () => {});
-        expect(resAsset.setHeader).toHaveBeenCalledWith('Cache-Control', expect.stringMatching(/public, max-age=\d+, must-revalidate/));
+        expect(resAsset.setHeader).toHaveBeenCalledWith('Cache-Control', expect.stringMatching(/public, max-age=\d+, immutable/));
+    });
+
+    test('cache control for search index json', () => {
+        require('../server.js');
+        const cacheControlMiddleware = express.getInternalMiddlewares().filter((m) => typeof m === 'function' && m.toString().includes('Cache-Control'))[0];
+        const reqAsset = { path: '/search-data.1a2b3c.json', url: '/search-data.1a2b3c.json' };
+        const resAsset = { setHeader: jest.fn() };
+        cacheControlMiddleware(reqAsset, resAsset, () => {});
+        expect(resAsset.setHeader).toHaveBeenCalledWith('Cache-Control', expect.stringMatching(/public, max-age=\d+, immutable/));
+    });
+
+    test('no cache control for other json', () => {
+        require('../server.js');
+        const cacheControlMiddleware = express.getInternalMiddlewares().filter((m) => typeof m === 'function' && m.toString().includes('Cache-Control'))[0];
+        const reqAsset = { path: '/other.json', url: '/other.json' };
+        const resAsset = { setHeader: jest.fn() };
+        cacheControlMiddleware(reqAsset, resAsset, () => {});
+        expect(resAsset.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache');
     });
 
     test('no cache control for other pages', () => {

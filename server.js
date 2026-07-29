@@ -37,16 +37,16 @@ app.use((req, res, next) => {
 // Set cache control
 app.use((req, res, next) => {
     const path = req.path;
-    // Images and assets use content hash filenames for cache busting
-    // Cache images for 5 days
-    const isImage = srcUtils.ALLOWED_IMAGE_EXTENSIONS.some((ext) => path.endsWith(ext) || path.endsWith('.ico'));
-    if (isImage) {
-        res.setHeader('Cache-Control', 'public, max-age=432000, must-revalidate');
-    } else if (path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.json')) {
-        // Cache static assets for 5 days
-        res.setHeader('Cache-Control', 'public, max-age=432000, must-revalidate');
+    // Cache images, assets and search index for 1 year - they use content hash filenames for cache busting
+    const isImage = srcUtils.ALLOWED_IMAGE_EXTENSIONS.some((ext) => path.endsWith(ext)) || path.endsWith('.ico');
+    const isStaticAsset = path.endsWith('.js') || path.endsWith('.css');
+    const [searchIndexBase, searchIndexExt] = srcUtils.SEARCH_DATA_FILENAME.split('.');
+    const isSearchIndex = path.startsWith(`/${searchIndexBase}`) && path.endsWith(searchIndexExt);
+
+    if (isImage || isStaticAsset || isSearchIndex) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     } else {
-        // All other content such as html pages do not cache
+        // All other content such as html pages must be re-validated
         res.setHeader('Cache-Control', 'no-cache');
     }
 

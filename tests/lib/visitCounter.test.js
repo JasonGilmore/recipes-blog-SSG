@@ -51,32 +51,47 @@ describe('track events middlware', () => {
         const { visitCounterMiddleware } = require('../../lib/visitCounter.js');
 
         const req = { method: 'POST', path: '/track-event', headers: {}, body: { event: 'pageview', pathname: '/recipes/bread' }, query: {} };
-        const res = { sendStatus: jest.fn() };
+        const res = { sendStatus: jest.fn(), setHeader: jest.fn() };
         const next = jest.fn();
         visitCounterMiddleware(req, res, next);
         expect(res.sendStatus).toHaveBeenCalledWith(200);
+        expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
         expect(next).not.toHaveBeenCalled();
     });
 
-    test('POST /track-event search calls sendStatus(200)', () => {
+    test('POST /track-event search calls sendStatus(200) and does not call next', () => {
         const req = { method: 'POST', path: '/track-event', headers: {}, body: { event: 'search', query: 'chocolate' }, query: {} };
-        const res = { sendStatus: jest.fn() };
+        const res = { sendStatus: jest.fn(), setHeader: jest.fn() };
         const next = jest.fn();
         const { visitCounterMiddleware } = require('../../lib/visitCounter.js');
 
         visitCounterMiddleware(req, res, next);
         expect(res.sendStatus).toHaveBeenCalledWith(200);
+        expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
+        expect(next).not.toHaveBeenCalled();
+    });
+
+    test('POST /track-event print calls sendStatus(200) and does not call next', () => {
+        const req = { method: 'POST', path: '/track-event', headers: {}, body: { event: 'print', pathname: '/recipes/tart?format=print' }, query: {} };
+        const res = { sendStatus: jest.fn(), setHeader: jest.fn() };
+        const next = jest.fn();
+        const { visitCounterMiddleware } = require('../../lib/visitCounter.js');
+
+        visitCounterMiddleware(req, res, next);
+        expect(res.sendStatus).toHaveBeenCalledWith(200);
+        expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
         expect(next).not.toHaveBeenCalled();
     });
 
     test('POST /track-event with test=true returns 200 and does not count', () => {
         const req = { method: 'POST', path: '/track-event', headers: {}, body: {}, query: { test: 'true' } };
-        const res = { sendStatus: jest.fn() };
+        const res = { sendStatus: jest.fn(), setHeader: jest.fn() };
         const next = jest.fn();
         const { visitCounterMiddleware } = require('../../lib/visitCounter.js');
 
         visitCounterMiddleware(req, res, next);
         expect(res.sendStatus).toHaveBeenCalledWith(200);
+        expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-store');
         expect(next).not.toHaveBeenCalled();
     });
 
