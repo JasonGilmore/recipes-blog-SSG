@@ -357,7 +357,7 @@ describe('getStatsGroup', () => {
     });
 });
 
-test('newDayReset saves visits, resets tracking and removes old data', () => {
+test('newDayReset saves visits, resets tracking, removes and archives old data', () => {
     const {
         newDayReset,
         getStatsGroup,
@@ -369,11 +369,13 @@ test('newDayReset saves visits, resets tracking and removes old data', () => {
         searchTermFreqToday,
     } = require('../../lib/visitCounter.js');
 
+    const fs = require('node:fs');
     const today = getISODateFormat(new Date());
     const overThirtyDaysAgoDate = new Date();
     overThirtyDaysAgoDate.setDate(overThirtyDaysAgoDate.getDate() - 31);
     const overThirtyDaysAgo = getISODateFormat(overThirtyDaysAgoDate);
 
+    // Initialise the stats
     const statsToKeep = getStatsGroup(today);
     statsToKeep[UNIQUE_APP_HITS_KEY] = 50;
     const statsToRemove = getStatsGroup(overThirtyDaysAgo);
@@ -389,8 +391,22 @@ test('newDayReset saves visits, resets tracking and removes old data', () => {
     expect(visitCounter[today][TOP_SEARCHES_KEY]).toEqual({ cookies: 5 });
     expect(visitCounter[today][UNIQUE_APP_HITS_KEY]).toBe(50);
     expect(visitCounter).not.toHaveProperty(overThirtyDaysAgo);
+    expect(fs.appendFileSync).toHaveBeenCalledWith(expect.any(String), expect.stringContaining(overThirtyDaysAgo));
     expect(appHitIpSetToday.size).toBe(0);
     expect(searchTermFreqToday.size).toBe(0);
+});
+
+test('archiveDay correctly formats and appends to JSONL archive', () => {
+    const { archiveDay } = require('../../lib/visitCounter.js');
+    const fs = require('node:fs');
+
+    const testDate = '2026-08-06';
+    const testStats = { uniqueAppHits: 10, homepageHits: 2 };
+
+    archiveDay(testDate, testStats);
+    const expectedLine = JSON.stringify({ date: testDate, ...testStats }) + '\n';
+    expect(fs.appendFileSync).toHaveBeenCalledTimes(1);
+    expect(fs.appendFileSync).toHaveBeenCalledWith(expect.any(String), expectedLine);
 });
 
 describe('getISODateFormat', () => {
