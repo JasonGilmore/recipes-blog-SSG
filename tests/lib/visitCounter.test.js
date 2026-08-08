@@ -50,7 +50,7 @@ describe('track events middlware', () => {
         utils.parseRequest.mockReturnValue({ isPost: true, matchedPostType: 'recipes', postName: 'bread' });
         const { visitCounterMiddleware } = require('../../lib/visitCounter.js');
 
-        const req = { method: 'POST', path: '/track-event', headers: {}, body: { event: 'pageview', pathname: '/recipes/bread' }, query: {} };
+        const req = { ip: '127.0.0.1', method: 'POST', path: '/track-event', headers: {}, body: { event: 'pageview', pathname: '/recipes/bread' }, query: {} };
         const res = { sendStatus: jest.fn(), setHeader: jest.fn() };
         const next = jest.fn();
         visitCounterMiddleware(req, res, next);
@@ -147,17 +147,23 @@ test('startAutoSave schedules interval and timeout', () => {
 });
 
 test('countUniqueVisit', () => {
-    const { countUniqueVisit, appHitIpSetToday, getStatsGroup } = require('../../lib/visitCounter.js');
+    const { countUniqueVisit, appHitIpSetToday, postHitIpSetToday, getStatsGroup } = require('../../lib/visitCounter.js');
 
-    countUniqueVisit('100.100.10.10', 'Mozilla/5.0');
+    countUniqueVisit('100.100.10.10', 'Mozilla/5.0', appHitIpSetToday);
     expect(appHitIpSetToday.size).toBe(1);
     expect(getStatsGroup(new Date()).uniqueAppHits).toBe(1);
 
-    countUniqueVisit('100.100.10.10', 'Mozilla/5.0');
+    countUniqueVisit('100.100.10.10', 'Mozilla/5.0', appHitIpSetToday);
     expect(appHitIpSetToday.size).toBe(1);
     expect(getStatsGroup(new Date()).uniqueAppHits).toBe(1);
 
-    countUniqueVisit('100.100.10.11', 'Mozilla/5.1');
+    countUniqueVisit('100.100.10.11', 'Mozilla/5.1', appHitIpSetToday);
+    expect(appHitIpSetToday.size).toBe(2);
+    expect(getStatsGroup(new Date()).uniqueAppHits).toBe(2);
+
+    countUniqueVisit('100.100.10.11', 'Mozilla/5.1', postHitIpSetToday);
+    expect(postHitIpSetToday.size).toBe(1);
+    expect(getStatsGroup(new Date()).uniquePostHits).toBe(1);
     expect(appHitIpSetToday.size).toBe(2);
     expect(getStatsGroup(new Date()).uniqueAppHits).toBe(2);
 });
@@ -366,34 +372,41 @@ test('newDayReset saves visits, resets tracking, removes and archives old data',
         getISODateFormat,
         visitCounter,
         appHitIpSetToday,
+        postHitIpSetToday,
         searchTermFreqToday,
+        printFreqToday,
     } = require('../../lib/visitCounter.js');
 
     const fs = require('node:fs');
     const today = getISODateFormat(new Date());
-    const overThirtyDaysAgoDate = new Date();
-    overThirtyDaysAgoDate.setDate(overThirtyDaysAgoDate.getDate() - 31);
-    const overThirtyDaysAgo = getISODateFormat(overThirtyDaysAgoDate);
+    const statsCutoffDate = new Date();
+    statsCutoffDate.setDate(statsCutoffDate.getDate() - 8);
+    const statsCutoff = getISODateFormat(statsCutoffDate);
 
     // Initialise the stats
     const statsToKeep = getStatsGroup(today);
     statsToKeep[UNIQUE_APP_HITS_KEY] = 50;
-    const statsToRemove = getStatsGroup(overThirtyDaysAgo);
+    const statsToRemove = getStatsGroup(statsCutoff);
 
     appHitIpSetToday.add('1.1.1.1');
+    postHitIpSetToday.add('2.2.2.2');
     searchTermFreqToday.set('cookies', 5);
+    printFreqToday.set('pie', 2);
 
     expect(visitCounter).toHaveProperty(today);
-    expect(visitCounter).toHaveProperty(overThirtyDaysAgo);
+    expect(visitCounter).toHaveProperty(statsCutoff);
 
     newDayReset();
     expect(visitCounter).toHaveProperty(today);
     expect(visitCounter[today][TOP_SEARCHES_KEY]).toEqual({ cookies: 5 });
     expect(visitCounter[today][UNIQUE_APP_HITS_KEY]).toBe(50);
-    expect(visitCounter).not.toHaveProperty(overThirtyDaysAgo);
-    expect(fs.appendFileSync).toHaveBeenCalledWith(expect.any(String), expect.stringContaining(overThirtyDaysAgo));
+    expect(visitCounter).not.toHaveProperty(statsCutoff);
+    expect(fs.appendFileSync).toHaveBeenCalledWith(expect.any(String), expect.stringContaining(statsCutoff));
+
     expect(appHitIpSetToday.size).toBe(0);
+    expect(postHitIpSetToday.size).toBe(0);
     expect(searchTermFreqToday.size).toBe(0);
+    expect(printFreqToday.size).toBe(0);
 });
 
 test('archiveDay correctly formats and appends to JSONL archive', () => {

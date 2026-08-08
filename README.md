@@ -173,10 +173,10 @@ This generator includes a high-performance client-side search powered by Lunr.js
 
 This generator includes an optional visit counter to track site visits.
 
-- Visit counting is enabled by default but can be customised via the `enableVisitCounter` property in the configuration. Simple numeric data is stored, persisted in `data/visitCounts.json`.
-- totalPostHits are incremented indefinitely, and visit stats are captured daily. Daily visit stats are rotated so only the last 30 days of visits are kept.
+- Visit counting is enabled by default but can be customised via the `enableVisitCounter` property in the configuration. Simple numeric data is stored, persisted in `data/visitCounts.json` for 7 days and then archived in `data/visitCounts-archive.jsonl`.
+- totalPostHits are incremented indefinitely, and visit stats are captured daily.
 - To prevent internal testing inflating visit counting, counting is bypassed if the url search string contains the parameter `test=true`.
-- For counting totalPostHits, homepageHits and postHits a simple client-side JavaScript tracking is used. For counting unique visitors, hashed ip address and user agent are stored and reset each day. If you require stricter privacy, disable this feature.
+- For counting hits a simple client-side JavaScript tracking is used. For counting unique visitors, hashed ip address and user agent are counted and reset each day. If you require stricter privacy, disable this feature.
 - Example:
 
 ```json
@@ -191,15 +191,19 @@ This generator includes an optional visit counter to track site visits.
             "howot-layer-cakes": 5
         }
     },
-    "2026-01-04": {
-        "uniqueAppHits": 40,
-        "homepageHits": 15,
-        "postHits": 35
-    },
-    "2026-01-05": {
-        "uniqueAppHits": 25,
-        "homepageHits": 10,
-        "postHits": 15
+    "2026-08-08": {
+        "uniqueAppHits": 20,
+        "uniquePostHits": 15,
+        "homepageHits": 25,
+        "postHits": 35,
+        "searchHits": 1,
+        "topSearches": {
+            "pie": 1
+        },
+        "printHits": 1,
+        "topPrints": {
+            "fruit-tart": 1
+        }
     }
 }
 ```
