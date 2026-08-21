@@ -882,7 +882,7 @@ footer {
 }
 
 /* Very small device */
-@media (max-width: 300px) {
+@media (max-width: 330px) {
 
     /* Allow post card height to expand due to header wrapping */
     .post-thumbnail-container a,
